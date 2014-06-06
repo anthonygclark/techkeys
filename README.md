@@ -16,7 +16,7 @@ My goal:
 + Get a simple version of firmata working
 
 
-To program the board in linux:
+To program the board in linux, you must plug it in, and JUMP the two pins next to the USB port via something metal, then:
 
 ```
 $ sudo dfu-programmer atmega16u2 erase
