@@ -1,0 +1,9 @@
+<AVRWorkspace>
+ <IOSettings><CurrentRegisters/></IOSettings><part name="ATMEGA32U4"/>
+ <Files>
+  <File00000 Name="main.c" Position="302 211 1453 597" LineCol="83 0" State="Maximized"/>
+  <File00001 Name="kb.c" Position="294 181 1632 754" LineCol="684 59" State="Maximized"/>
+  <File00002 Name="kb.h" Position="352 261 1495 617" LineCol="16 0" State="Maximized"/>
+  <File00003 Name="usb_cfg.h" Position="377 286 1520 642" LineCol="34 0" State="Maximized"/>
+ </Files>
+</AVRWorkspace>
