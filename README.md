@@ -16,18 +16,41 @@ My goal:
 + Get a simple version of firmata working
 
 
+Makefiles
+---------
+There is a `Makefile` in each project directory. Here is the process:
+```
+$ make
+[CC ]  obj/includes/u_hid_kb.o
+[CC ]  obj/includes/u_des_kb.o
+[CC ]  obj/main.o
+main.c: In function 'main':
+<built-in>: warning: function declared 'noreturn' has a 'return' statement
+[CC ]  obj/kb.o
+[ELF]  bin/KeyCard.elf
+[HEX]  bin/KeyCard.hex
+
+$ make flash 
+Flashing...
+[sudo] password for aclark: 
+[+] Waiting for DFU mode (connect device and jump the pads!)    
+[+] Erasing...    
+[+] Uploading...
+```
+
+
+Manual flash
+------------
+Generating the `.hex` file is usually as simple as converting the output binary to hex with `avr-objcopy`
+
+```
+<compilation here>
+$ arv-objcopy -O ihex a.out MYHEX.hex
+```
+
 To program the board in linux, you must plug it in, and JUMP the two pins next to the USB port via something metal, then:
 
 ```
 $ sudo dfu-programmer atmega16u2 erase
 $ sudo dfu-programmer atmega16u2 flash MYHEX.hex --debug-level=5
 ``` 
-
-
-Generating the `.hex` file is usually as simple as converting the output binary to hex with `avr-objcopy`
-
-```
-$ arv-objcopy -O ihex a.out MYHEX.hex
-```
-
-
