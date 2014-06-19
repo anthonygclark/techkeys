@@ -1,0 +1,41 @@
+# vim: set ft=sh
+export logFile=${logFile:-/dev/null}
+
+function waitProgress()
+{
+    local pid=$!
+    local msg=$1
+    local delay=0.25
+    local str=("/" "-" "\\" "|")
+    local index=0
+    local _FAIL="[-]"
+    local _SUCCESS="[+]"
+    local _NOTE="[*]"
+    
+    [[ -z $msg ]] && { 
+        msg="Waiting..."
+    }
+
+    if [[ -t 1 ]]; then
+        # produces spinner indicator
+        while kill -0 $pid &>/dev/null; do
+            echo -ne "\r[${str[$index]}] $msg  "
+            sleep $delay
+            index=$(( $(( $index + 1 )) % ${#str[@]} ))
+        done
+    else
+        # or a simpler indicator
+        echo -en "\r[...] $msg"
+    fi
+
+    # block
+    if wait $pid ; then
+        ret=$?
+        echo -en "\r$_SUCCESS $msg    \n"
+    else
+        ret=$?
+        echo -en "\r$_FAIL $msg       \n"
+    fi
+
+    return $ret
+}
