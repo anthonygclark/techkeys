@@ -52,3 +52,8 @@ all: $(TARGETS)
 
 clean:
 	$(RM) bin obj
+
+BINARY=bin/$(RESULT_techkeys).hex
+MISC_PATH=$(realpath ../misc)
+
+include $(MISC_PATH)/flash.mk
