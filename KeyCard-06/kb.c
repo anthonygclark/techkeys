@@ -508,13 +508,13 @@ static uint8_t build_kbd_report ( uint8_t keys )
 
     // Select key-to-usage table
 
-    //if ( kbd_leds == _BV(bLED_NUM) )
-	//pu = key_usagesN ;
-    //else
-    //if ( kbd_leds == _BV(bLED_SCR) )
+    if ( kbd_leds == _BV(bLED_NUM) )
+	pu = key_usagesN ;
+    else
+    if ( kbd_leds == _BV(bLED_SCR) )
 	pu = key_usagesS ;
-    //else
-    //pu = key_usages ;
+    else
+    pu = key_usages ;
 
     if ( ! keys )			// All keys down, toggle demo mode
 	demo_off = ! demo_off ;
