@@ -1,4 +1,4 @@
-MISC_PATH := ../../misc
+MISC_PATH := ../misc
 
 BIN     := KeyCard
 CC		:= avr-gcc
