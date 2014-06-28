@@ -250,17 +250,17 @@ void led_pwm ( void )
 
 //------------------------------------------------------------------------------
 
-#define	DEMO_TIMER		1		/* Change LED's every 30ms */
+#define	DEMO_TIMER		10		/* Change LED's every 30ms */
 
 static void led_demo ( uint8_t reset )
 {
     static const uint8_t
-        breathe[] PROGMEM =
+        gradual[] PROGMEM =
         {
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 4, 4, 5, 6, 7,
-            8, 7, 6, 5, 4, 4, 3, 3, 3, 2, 2, 2, 2, 1, 1, 1,
-            1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+            4,4,4,4,4,4,4,4,4,4, // len: DEMO_TIMER
+            3,3,3,3,3,3,3,3,3,3, // ^
+            2,2,2,2,2,2,2,2,2,2, // ^ 
+            1,1,1,1,1,1,1,1,1,1, // ^ 
         } ;
 
     static uint8_t
@@ -282,17 +282,17 @@ static void led_demo ( uint8_t reset )
         timer = DEMO_TIMER ;
 
         if (key_active == bKEY_LFT)
-            set_leds( mLED_LFT, 4);//pgm_read_byte( breathe +   idx  ) ) ;
+            set_leds( mLED_LFT, pgm_read_byte( gradual + idx ));
         if (key_active == bKEY_MID)
-            set_leds( mLED_MID, 4);//pgm_read_byte( breathe + ((idx +  7) % ARRSZ( breathe )) ) ) ;
+            set_leds( mLED_MID, pgm_read_byte( gradual + idx ));
         if (key_active == bKEY_RGT)
-            set_leds( mLED_RGT, 4);//pgm_read_byte( breathe + ((idx + 14) % ARRSZ( breathe )) ) ) ;
+            set_leds( mLED_RGT, pgm_read_byte( gradual + idx ));
 
-        if ( ++idx >= ARRSZ( breathe ) ) {
+        if ( ++idx >= ARRSZ( gradual ) ) {
             idx = 0 ;
-            set_leds( mLED_LFT, 0);//pgm_read_byte( breathe +   idx  ) ) ;
-            set_leds( mLED_MID, 0);//pgm_read_byte( breathe + ((idx +  7) % ARRSZ( breathe )) ) ) ;
-            set_leds( mLED_RGT, 0);//pgm_read_byte( breathe + ((idx + 14) % ARRSZ( breathe )) ) ) ;
+            set_leds( mLED_LFT, 0);
+            set_leds( mLED_MID, 0);
+            set_leds( mLED_RGT, 0);
             led_active = 0;
         }
     }
