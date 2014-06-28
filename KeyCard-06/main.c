@@ -37,7 +37,7 @@
 
 void FA_INIT3( Init3 ) ( void )
 {
-//  mcusr_cpy = MCUSR ;			// If we need to examine reset reason
+    //  mcusr_cpy = MCUSR ;			// If we need to examine reset reason
     MCUSR = 0 ;
     wdt_disable() ;
 }
@@ -45,7 +45,7 @@ void FA_INIT3( Init3 ) ( void )
 //------------------------------------------------------------------------------
 
 static volatile uint8_t
-    alarm ;
+alarm ;
 
 ISR( TIMER1_COMPA_vect )
 {
@@ -57,9 +57,9 @@ ISR( TIMER1_COMPA_vect )
 int FA_NORETURN( main ) ( void )
 {
     uint8_t
-	suspended = TRUE,		// Offline
-	idle = IDLE_PERIOD,		// idle period timer
-	kbd_sendrep = FALSE ;		// "need to send report" signal
+        suspended = TRUE,		// Offline
+                  idle = IDLE_PERIOD,		// idle period timer
+                  kbd_sendrep = FALSE ;		// "need to send report" signal
 
     // Initialize..
 
@@ -79,113 +79,113 @@ int FA_NORETURN( main ) ( void )
 
     for ( ;; )				// Forever..
     {
-	sleep_enable() ;		// Prepare for sleep
+        sleep_enable() ;		// Prepare for sleep
 
         for ( ; ! alarm ; )		// No alarm pending,
-	    sleep_cpu() ;		// snooze.
+            sleep_cpu() ;		// snooze.
 
         sleep_disable() ;
 
-	// 500us are up, do house keeping
+        // 500us are up, do house keeping
 
-	alarm = FALSE ;			// reset alarm
+        alarm = FALSE ;			// reset alarm
 
-	if ( usb_configured() )		// USB link up and running
-	{
-	    if ( suspended )		// Coming out of suspend or reset
-	    {
-		suspended = FALSE ;
+        if ( usb_configured() )		// USB link up and running
+        {
+            if ( suspended )		// Coming out of suspend or reset
+            {
+                suspended = FALSE ;
 
-		sleep_led( SIG_RESET ) ;	// Reset sleep LED
+                sleep_led( SIG_RESET ) ;	// Reset sleep LED
 
-		// Set clock divider to 1, full speed
+                // Set clock divider to 1, full speed
 
-		clock_prescale_set( clock_div_1 ) ;
+                clock_prescale_set( clock_div_1 ) ;
 
-		wdt_enable( WDTO_500MS ) ;	// Unleash watchdog
+                wdt_enable( WDTO_500MS ) ;	// Unleash watchdog
 
-		read_matrix( SIG_RESET ) ;	// Reset key matrix
-		maint_leds( SIG_RESET ) ;	// Reset LED system
+                read_matrix( SIG_RESET ) ;	// Reset key matrix
+                maint_leds( SIG_RESET ) ;	// Reset LED system
 
-		idle = IDLE_PERIOD ;
-		kbd_sendrep  = FALSE ;		// Reset send report flag
-		kbd_idle_cnt = kbd_idle_rate ;	// Reset idle counter
-	    }
+                idle = IDLE_PERIOD ;
+                kbd_sendrep  = FALSE ;		// Reset send report flag
+                kbd_idle_cnt = kbd_idle_rate ;	// Reset idle counter
+            }
 
-	    led_pwm() ;				// Maintain LED PWM
+            led_pwm() ;				// Maintain LED PWM
 
-	    maint_leds( SIG_MAINT ) ;		// Maintain LEDs
+            maint_leds( SIG_MAINT ) ;		// Maintain LEDs
 
-	    kbd_sendrep |=
-		read_matrix( SIG_MAINT ) ;	// Read & maintain key matrix
+            kbd_sendrep |=
+                read_matrix( SIG_MAINT ) ;	// Read & maintain key matrix
 
-	    if ( ! idle-- )			// Maintain idle counters
-	    {
-		idle = IDLE_PERIOD ;
-						// Idle counter expired, rate not indef.
-		if ( ! --kbd_idle_cnt && kbd_idle_rate )
-		    kbd_sendrep |= REP0_CHG ;	// need to send current report
-	    }
+            if ( ! idle-- )			// Maintain idle counters
+            {
+                idle = IDLE_PERIOD ;
+                // Idle counter expired, rate not indef.
+                if ( ! --kbd_idle_cnt && kbd_idle_rate )
+                    kbd_sendrep |= REP0_CHG ;	// need to send current report
+            }
 
-	    if ( (kbd_sendrep & REP0_CHG) && ! usb_IN_busy( EP_HID_KBD ) )
-	    {
-		LED_on( bLED_SYS ) ;
+            if ( (kbd_sendrep & REP0_CHG) && ! usb_IN_busy( EP_HID_KBD ) )
+            {
+                LED_on( bLED_SYS ) ;
 
-		usb_send_IN( VP( &kbd_report ), sizeof( kbd_report ), EP_HID_KBD ) ;
+                usb_send_IN( VP( &kbd_report ), sizeof( kbd_report ), EP_HID_KBD ) ;
 
-		kbd_sendrep &= ~REP0_CHG ;	// reset send report flag
-		kbd_idle_cnt = kbd_idle_rate ;	// reset idle counter
+                kbd_sendrep &= ~REP0_CHG ;	// reset send report flag
+                kbd_idle_cnt = kbd_idle_rate ;	// reset idle counter
 
-		LED_off( bLED_SYS ) ;
-	    }
+                LED_off( bLED_SYS ) ;
+            }
 
-	    if ( (kbd_sendrep & REP1_CHG) && ! usb_IN_busy( EP_HID_CTRL ) )
-	    {
-		LED_on( bLED_SYS ) ;
+            if ( (kbd_sendrep & REP1_CHG) && ! usb_IN_busy( EP_HID_CTRL ) )
+            {
+                LED_on( bLED_SYS ) ;
 
-		usb_send_IN( VP( &ctrl_report1 ), sizeof( ctrl_report1 ), EP_HID_CTRL ) ;
+                usb_send_IN( VP( &ctrl_report1 ), sizeof( ctrl_report1 ), EP_HID_CTRL ) ;
 
-		kbd_sendrep &= ~REP1_CHG ;
+                kbd_sendrep &= ~REP1_CHG ;
 
-		LED_off( bLED_SYS ) ;
-	    }
+                LED_off( bLED_SYS ) ;
+            }
 
-	    if ( (kbd_sendrep & REP2_CHG) && ! usb_IN_busy( EP_HID_CTRL ) )
-	    {
-		LED_on( bLED_SYS ) ;
+            if ( (kbd_sendrep & REP2_CHG) && ! usb_IN_busy( EP_HID_CTRL ) )
+            {
+                LED_on( bLED_SYS ) ;
 
-		usb_send_IN( VP( &ctrl_report2 ), sizeof( ctrl_report2 ), EP_HID_CTRL ) ;
+                usb_send_IN( VP( &ctrl_report2 ), sizeof( ctrl_report2 ), EP_HID_CTRL ) ;
 
-		kbd_sendrep &= ~REP2_CHG ;
+                kbd_sendrep &= ~REP2_CHG ;
 
-		LED_off( bLED_SYS ) ;
-	    }
+                LED_off( bLED_SYS ) ;
+            }
 
-	    wdt_reset() ;		// Pet watchdog
-	}
-	else				// USB link down
-	if ( usb_suspend )		// ..because we are suspended
-	{
-	    if ( ! suspended )		// Just got suspended
-	    {
-		suspended = TRUE ;
+            wdt_reset() ;		// Pet watchdog
+        }
+        else				// USB link down
+            if ( usb_suspend )		// ..because we are suspended
+            {
+                if ( ! suspended )		// Just got suspended
+                {
+                    suspended = TRUE ;
 
-		maint_leds( SIG_RESET ) ;	// Reset LED system
-		sleep_led( SIG_RESET ) ;	// Reset sleep LED
-		check_keys( SIG_RESET ) ;	// Reset key check
+                    maint_leds( SIG_RESET ) ;	// Reset LED system
+                    sleep_led( SIG_RESET ) ;	// Reset sleep LED
+                    check_keys( SIG_RESET ) ;	// Reset key check
 
-		wdt_disable() ;			// Leash watchdog
+                    wdt_disable() ;			// Leash watchdog
 
-		// Set clock divider to 2, half speed
+                    // Set clock divider to 2, half speed
 
-		clock_prescale_set( clock_div_2 ) ;
-	    }
+                    clock_prescale_set( clock_div_2 ) ;
+                }
 
-	    sleep_led( SIG_MAINT ) ;		// Maintain sleep LED
+                sleep_led( SIG_MAINT ) ;		// Maintain sleep LED
 
-	    if ( check_keys( SIG_MAINT ) )	// Check for any key down
-		usb_remote_wakeup() ;
-	}
+                if ( check_keys( SIG_MAINT ) )	// Check for any key down
+                    usb_remote_wakeup() ;
+            }
     }
 }
 
