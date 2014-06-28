@@ -45,21 +45,21 @@
 // Port B
 
 #define PBPU		(PU1( PB7) | PU1( PB6) | PU1( PB5) | _B1( PB4) | \
-			 _B1( PB3) | _B1( PB2) | _B1( PB1) | PU1( PB0))
+                     _B1( PB3) | _B1( PB2) | _B1( PB1) | PU1( PB0))
 #define DDB		(DDI(DDB7) | DDI(DDB6) | DDI(DDB5) | DDO(DDB4) | \
-			 DDO(DDB3) | DDO(DDB2) | DDO(DDB1) | DDI(DDB0))
+                 DDO(DDB3) | DDO(DDB2) | DDO(DDB1) | DDI(DDB0))
 // Port C
 
 #define PCPU		(PU1( PC7) | PU1( PC6) | PU1( PC5) | PU1( PC4) | \
-			             PU1( PC2) | PU1( PC1) | PU1( PC0))
+                     PU1( PC2) | PU1( PC1) | PU1( PC0))
 #define DDC		(DDI(DDC7) | DDI(DDC6) | DDI(DDC5) | DDI(DDC4) | \
-			             DDI(DDC2) | DDI(DDC1) | DDI(DDC0))
+                 DDI(DDC2) | DDI(DDC1) | DDI(DDC0))
 // Port D
 
 #define PDPU		(PU1( PD7) | PU1( PD6) | PU1( PD5) | PU1( PD4) | \
-			 PU1( PD3) | PU1( PD2) | PU1( PD1) | PU1( PD0))
+                     PU1( PD3) | PU1( PD2) | PU1( PD1) | PU1( PD0))
 #define DDD		(DDI(DDD7) | DDI(DDD6) | DDI(DDD5) | DDI(DDD4) | \
-			 DDI(DDD3) | DDI(DDD2) | DDI(DDD1) | DDI(DDD0))
+                 DDI(DDD3) | DDI(DDD2) | DDI(DDD1) | DDI(DDD0))
 
 //------------------------------------------------------------------------------
 // 3% Key & LED definitions
@@ -126,10 +126,15 @@
 //------------------------------------------------------------------------------
 
 static uint8_t
-    demo_off,				// No demo mode flag (can be irritating..)
+demo_off,				// No demo mode flag (can be irritating..)
     led_r_pat,				// Right LED PWM pattern
     led_m_pat,				// Middle LED PWM pattern
     led_l_pat ;				// Left LED PWM pattern
+
+static uint8_t
+    led_active,
+    key_active;
+
 
 //------------------------------------------------------------------------------
 //******************************************************************************
@@ -144,7 +149,7 @@ static void Delay_T1 ( uint16_t time )
     ResetTM( 1, time ) ;		// set timer
 
     for ( ; ! TMexp( 1 ) ; )		// wait until timer expired
-	;
+        ;
 }
 
 //------------------------------------------------------------------------------
@@ -187,30 +192,30 @@ static void FA_NORETURN( bootloader ) ( void )
 static void set_leds ( uint8_t leds, uint8_t lvl )
 {
     static const uint8_t
-	pattern[] PROGMEM =
-	{
-	    0b00000000,	//   0%
-	    0b00000001,	//  12.5%
-	    0b10001000,	//  25%
-	    0b01001010,	//  37.5%
-	    0b01010101,	//  50%
-	    0b11011010,	//  62.5%
-	    0b01110111,	//  75
-	    0b11111110,	//  82.5%
-	    0b11111111	// 100%
-	} ;
+        pattern[] PROGMEM =
+        {
+            0b00000000,	//   0%
+            0b00000001,	//  12.5%
+            0b10001000,	//  25%
+            0b01001010,	//  37.5%
+            0b01010101,	//  50%
+            0b11011010,	//  62.5%
+            0b01110111,	//  75
+            0b11111110,	//  82.5%
+            0b11111111	// 100%
+        } ;
 
-//    if ( lvl >= ARRSZ( pattern ) )		// Should never happen
-//	return ;
+    //    if ( lvl >= ARRSZ( pattern ) )		// Should never happen
+    //	return ;
 
     if ( leds & mLED_RGT )
-	led_r_pat = pgm_read_byte( pattern + lvl ) ;
+        led_r_pat = pgm_read_byte( pattern + lvl ) ;
 
     if ( leds & mLED_MID )
-	led_m_pat = pgm_read_byte( pattern + lvl ) ;
+        led_m_pat = pgm_read_byte( pattern + lvl ) ;
 
     if ( leds & mLED_LFT )
-	led_l_pat = pgm_read_byte( pattern + lvl ) ;
+        led_l_pat = pgm_read_byte( pattern + lvl ) ;
 }
 //------------------------------------------------------------------------------
 
@@ -219,69 +224,77 @@ static void set_leds ( uint8_t leds, uint8_t lvl )
 void led_pwm ( void )
 {
     uint8_t
-	pat ;
+        pat ;
 
     if ( (pat = led_r_pat) & 1 )
-	LED_on( bLED_RGT ) ;
+        LED_on( bLED_RGT ) ;
     else
-	LED_off( bLED_RGT ) ;
+        LED_off( bLED_RGT ) ;
 
     led_r_pat = ror8( pat ) ;
 
     if ( (pat = led_m_pat) & 1 )
-	LED_on( bLED_MID ) ;
+        LED_on( bLED_MID ) ;
     else
-	LED_off( bLED_MID ) ;
+        LED_off( bLED_MID ) ;
 
     led_m_pat = ror8( pat ) ;
 
     if ( (pat = led_l_pat) & 1 )
-	LED_on( bLED_LFT ) ;
+        LED_on( bLED_LFT ) ;
     else
-	LED_off( bLED_LFT ) ;
+        LED_off( bLED_LFT ) ;
 
     led_l_pat = ror8( pat ) ;
 }
 
 //------------------------------------------------------------------------------
 
-#define	DEMO_TIMER		30		/* Change LED's every 30ms */
+#define	DEMO_TIMER		1		/* Change LED's every 30ms */
 
 static void led_demo ( uint8_t reset )
 {
     static const uint8_t
-	breathe[] PROGMEM =
-	{
-	   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	   1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 4, 4, 5, 6, 7,
-	   8, 7, 6, 5, 4, 4, 3, 3, 3, 2, 2, 2, 2, 1, 1, 1,
-	   1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-	} ;
+        breathe[] PROGMEM =
+        {
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 4, 4, 5, 6, 7,
+            8, 7, 6, 5, 4, 4, 3, 3, 3, 2, 2, 2, 2, 1, 1, 1,
+            1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        } ;
 
     static uint8_t
-	timer,
-	idx ;
+        timer,
+        idx;
 
-    if ( reset )
+    if ( reset || !led_active)
     {
-	timer = 0 ;
-	idx   = 0 ;
+        timer = 0 ;
+        idx   = 0 ;
 
-	set_leds( mLEDS, 0 ) ;
+        set_leds( mLEDS, 0 ) ;
 
-	return ;
+        return ;
     }
 
     if ( ! timer-- )
     {
-	timer = DEMO_TIMER ;
+        timer = DEMO_TIMER ;
 
-	set_leds( mLED_LFT, pgm_read_byte( breathe +   idx  ) ) ;
-	set_leds( mLED_MID, pgm_read_byte( breathe + ((idx +  7) % ARRSZ( breathe )) ) ) ;
-	set_leds( mLED_RGT, pgm_read_byte( breathe + ((idx + 14) % ARRSZ( breathe )) ) ) ;
+        if (key_active == bKEY_LFT)
+            set_leds( mLED_LFT, 4);//pgm_read_byte( breathe +   idx  ) ) ;
+        if (key_active == bKEY_MID)
+            set_leds( mLED_MID, 4);//pgm_read_byte( breathe + ((idx +  7) % ARRSZ( breathe )) ) ) ;
+        if (key_active == bKEY_RGT)
+            set_leds( mLED_RGT, 4);//pgm_read_byte( breathe + ((idx + 14) % ARRSZ( breathe )) ) ) ;
 
-	if ( ++idx >= ARRSZ( breathe ) )
-	    idx = 0 ;
+        if ( ++idx >= ARRSZ( breathe ) ) {
+            idx = 0 ;
+            set_leds( mLED_LFT, 0);//pgm_read_byte( breathe +   idx  ) ) ;
+            set_leds( mLED_MID, 0);//pgm_read_byte( breathe + ((idx +  7) % ARRSZ( breathe )) ) ) ;
+            set_leds( mLED_RGT, 0);//pgm_read_byte( breathe + ((idx + 14) % ARRSZ( breathe )) ) ) ;
+            led_active = 0;
+        }
     }
 }
 
@@ -295,28 +308,28 @@ static void led_demo ( uint8_t reset )
 void sleep_led ( uint8_t reset )
 {
     static uint16_t
-	timer ;
+        timer ;
 
     if ( reset )
     {
-	LED_off( bLED_SYS ) ;
-	timer = 0 ;
+        LED_off( bLED_SYS ) ;
+        timer = 0 ;
 
-	return ;
+        return ;
     }
 
     if ( ! timer-- )			// Timer expired
     {
-	if ( LED_sts( bLED_SYS ) )	// LED on ?
-	{
-	    LED_off( bLED_SYS ) ;
-	    timer = SLEEP_ON_DELAY ;
-	}
-	else
-	{
-	    LED_on( bLED_SYS ) ;
-	    timer = SLEEP_OFF_DELAY ;
-	}
+        if ( LED_sts( bLED_SYS ) )	// LED on ?
+        {
+            LED_off( bLED_SYS ) ;
+            timer = SLEEP_ON_DELAY ;
+        }
+        else
+        {
+            LED_on( bLED_SYS ) ;
+            timer = SLEEP_OFF_DELAY ;
+        }
     }
 }
 
@@ -331,85 +344,85 @@ void sleep_led ( uint8_t reset )
 void maint_leds ( uint8_t reset )
 {
     static uint16_t
-	bload,				// Bootloader call timer
-	demo ;				// Demo start timer
+        bload,				// Bootloader call timer
+        demo ;				// Demo start timer
 
     static uint8_t
-	timer ;
+        timer ;
 
     uint8_t
-	mLeds ;
+        mLeds ;
 
     if ( reset )
     {
-	bload = BOOT_DELAY ;
-	demo  = DEMO_DELAY ;
-	timer = 0 ;
+        bload = BOOT_DELAY ;
+        demo  = DEMO_DELAY ;
+        timer = 0 ;
 
-	set_leds( mLEDS, 0 ) ;
-	led_pwm() ;			// Make sure LED's are off
+        set_leds( mLEDS, 0 ) ;
+        led_pwm() ;			// Make sure LED's are off
 
-	return ;
+        return ;
     }
 
     if ( ! timer-- )			// Maintain LED's every .5ms * timer
     {
-	timer = LED_TIMER ;
+        timer = LED_TIMER ;
 
-	if ( (kbd_leds & (_BV(bLED_NUM) | _BV(bLED_CAPS) | _BV(bLED_SCR))) )
-	{					// LOCK LED(s) active
-	    if ( demo != DEMO_DELAY )		// Demo mode was possibly on
-	    {
-		bload = BOOT_DELAY ;
-		demo  = DEMO_DELAY ;		// Reset demo & bload timers
-	    }
-						// Scroll- + Num-Lock on
-	    if ( kbd_leds == (_BV(bLED_NUM) | _BV(bLED_SCR)) )
-		if ( ! --bload )
-		    bootloader() ;
+        if ( (kbd_leds & (_BV(bLED_NUM) | _BV(bLED_CAPS) | _BV(bLED_SCR))) )
+        {					// LOCK LED(s) active
+            if ( demo != DEMO_DELAY )		// Demo mode was possibly on
+            {
+                bload = BOOT_DELAY ;
+                demo  = DEMO_DELAY ;		// Reset demo & bload timers
+            }
+            // Scroll- + Num-Lock on
+            if ( kbd_leds == (_BV(bLED_NUM) | _BV(bLED_SCR)) )
+                if ( ! --bload )
+                    bootloader() ;
 
-	    mLeds = 0 ;
+            mLeds = 0 ;
 
-	    if ( kbd_leds & _BV(bLED_NUM) )
-		mLeds |= mLED_LFT ;
+            if ( kbd_leds & _BV(bLED_NUM) )
+                mLeds |= mLED_LFT ;
 
-	    if ( kbd_leds & _BV(bLED_CAPS) )
-		mLeds |= mLED_MID ;
+            if ( kbd_leds & _BV(bLED_CAPS) )
+                mLeds |= mLED_MID ;
 
-	    if ( kbd_leds & _BV(bLED_SCR) )
-		mLeds |= mLED_RGT ;
+            if ( kbd_leds & _BV(bLED_SCR) )
+                mLeds |= mLED_RGT ;
 
-	    set_leds( mLeds, 1 ) ;		// 1 is lowest dim level
-	    set_leds( mLeds ^ mLEDS, 0 ) ;
-	}
-	else				// No LED active
-	{
-	    if ( demo )			// Waiting for demo display
-	    {
-		if ( demo_off )
-		{
-		    LED_on( bLED_SYS ) ;
+            set_leds( mLeds, 1 ) ;		// 1 is lowest dim level
+            set_leds( mLeds ^ mLEDS, 0 ) ;
+        }
+        else				// No LED active
+        {
+            if ( demo )			// Waiting for demo display
+            {
+                if ( demo_off )
+                {
+                    LED_on( bLED_SYS ) ;
 
-		    if ( demo == DEMO_DELAY )	// First run after LED's off
-		    {
-			set_leds( mLEDS, 0 ) ;	// Set all LED's off
-			--demo ;
-		    }
+                    if ( demo == DEMO_DELAY )	// First run after LED's off
+                    {
+                        set_leds( mLEDS, 0 ) ;	// Set all LED's off
+                        --demo ;
+                    }
 
-		    LED_off( bLED_SYS ) ;
-		}
-		else
-		{
-		    if ( demo == DEMO_DELAY )	// First run after LED's off
-			set_leds( mLEDS, 0 ) ;	// Set all LED's off
+                    LED_off( bLED_SYS ) ;
+                }
+                else
+                {
+                    if ( demo == DEMO_DELAY )	// First run after LED's off
+                        set_leds( mLEDS, 0 ) ;	// Set all LED's off
 
-		    if ( ! --demo )		// Demo enable on next run
-			led_demo( SIG_RESET ) ;	// Reset demo routine
-		}
-	    }
-	    else
-		led_demo( SIG_MAINT ) ;
-	}
+                    if ( ! --demo )		// Demo enable on next run
+                        led_demo( SIG_RESET ) ;	// Reset demo routine
+                }
+            }
+            else
+                led_demo( SIG_MAINT ) ;
+        }
     }
 }
 
@@ -420,33 +433,33 @@ void maint_leds ( uint8_t reset )
 uint8_t check_keys ( uint8_t reset )
 {
     static uint8_t
-	db ;				// Debounce timer
+        db ;				// Debounce timer
 
     uint8_t
-	key,
-	ret = FALSE ;
+        key,
+        ret = FALSE ;
 
     if ( reset )
     {
-	db = 0 ;			// Not debouncing
+        db = 0 ;			// Not debouncing
 
-	return ( FALSE ) ;
+        return ( FALSE ) ;
     }
 
     key = KEY_IN_P & mKEYS_P ;
 
     if ( ! db )				// Not debouncing
     {
-	if ( key != mKEYS_P )		// Any key down
-	    db = DEBOUNCE_MS ;		// start debouncing
+        if ( key != mKEYS_P )		// Any key down
+            db = DEBOUNCE_MS ;		// start debouncing
     }
     else				// Debouncing
     {
-	if ( key == mKEYS_P )		// No key down anymore
-	    db = 0 ;			// false alarm
-	else				// Any key still own
-	if ( ! --db )			// Debounce period expired
-	    ret = TRUE ;
+        if ( key == mKEYS_P )		// No key down anymore
+            db = 0 ;			// false alarm
+        else				// Any key still own
+            if ( ! --db )			// Debounce period expired
+                ret = TRUE ;
     }
 
     return ( ret ) ;
@@ -458,68 +471,70 @@ uint8_t check_keys ( uint8_t reset )
 
 static uint8_t build_kbd_report ( uint8_t keys )
 {
-  #define REP_M		0x0000		/* Macro */
-  #define REP_KB	0x1000		/* Keyboard */
-  #define REP_SC	0x2000		/* System Control */
-  #define REP_CC	0x4000		/* Consumer Control */
+#define REP_M		0x0000		/* Macro */
+#define REP_KB	0x1000		/* Keyboard */
+#define REP_SC	0x2000		/* System Control */
+#define REP_CC	0x4000		/* Consumer Control */
 
-  #define U_Macro_1	0x0010
-  #define U_Macro_2	0x0020
-  #define U_Macro_3	0x0030
+#define U_Macro_1	0x0010
+#define U_Macro_2	0x0020
+#define U_Macro_3	0x0030
 
     static const uint16_t
-	key_usages[KEY_COUNT] PROGMEM =	// Key-to-usage matrix
-	{
-	    REP_M  | U_Macro_3,		// PB5 Right key
-	    REP_M  | U_Macro_2,		// PB6 Middle key
-	    REP_M  | U_Macro_1,		// PB7 Left key
-	},
-	key_usagesS[KEY_COUNT] PROGMEM = // Key-to-usage matrix if SCR lock is set
-	{
-	    REP_CC | U_NextTrack,	// PB5 Right key
-	    REP_CC | U_PlayPause,	// PB6 Middle key
-	    REP_CC | U_PrevTrack	// PB7 Left key
-	},
-	key_usagesN[KEY_COUNT] PROGMEM = // Key-to-usage matrix if NUM lock is set
-	{
-	    REP_CC | U_VolUp,		// PB5 Right key
-	    REP_CC | U_Mute,		// PB6 Middle key
-	    REP_CC | U_VolDwn,		// PB7 Left key
-	}
+        key_usages[KEY_COUNT] PROGMEM =	// Key-to-usage matrix
+        {
+            REP_M  | U_Macro_3,		// PB5 Right key
+            REP_M  | U_Macro_2,		// PB6 Middle key
+            REP_M  | U_Macro_1,		// PB7 Left key
+        },
+        key_usagesS[KEY_COUNT] PROGMEM = // Key-to-usage matrix if SCR lock is set
+        {
+            REP_CC | U_NextTrack,	// PB5 Right key
+            REP_CC | U_PlayPause,	// PB6 Middle key
+            REP_CC | U_PrevTrack	// PB7 Left key
+        },
+        key_usagesN[KEY_COUNT] PROGMEM = // Key-to-usage matrix if NUM lock is set
+        {
+            REP_CC | U_VolUp,		// PB5 Right key
+            REP_CC | U_Mute,		// PB6 Middle key
+            REP_CC | U_VolDwn,		// PB7 Left key
+        }
     ;
 
     static kb_report_t
-	last_kbd_rep ;
+        last_kbd_rep ;
 
     static uint16_t
-	last_ctrl_rep1,
-	last_ctrl_rep2 ;
+        last_ctrl_rep1,
+        last_ctrl_rep2 ;
 
     uint16_t
-	usage ;
+        usage ;
 
     uint8_t
-	i,
-	ki = 0,
-	ret = 0 ;
+        i,
+        ki = 0,
+        ret = 0 ;
 
     const uint16_t
-	*pu ;
+        *pu ;
 
-    // Select key-to-usage table
+    //////// Select key-to-usage table
 
-    //if ( kbd_leds == _BV(bLED_NUM) )
-	//pu = key_usagesN ;
-    //else
-    //if ( kbd_leds == _BV(bLED_SCR) )
-	(void)key_usages;
+    //////if ( kbd_leds == _BV(bLED_NUM) )
+    //////    pu = key_usagesN ;
+    //////else
+    //////    if ( kbd_leds == _BV(bLED_SCR) )
+    //////        pu = key_usagesS;
+    //////    else
+    //////        pu = key_usages ;
+
+    (void)key_usages;
     (void)key_usagesN;
     pu = key_usagesS;
-    //else
-    //pu = key_usages ;
 
     if ( ! keys )			// All keys down, toggle demo mode
-	demo_off = ! demo_off ;
+        demo_off = ! demo_off ;
 
     ctrl_report1.key = U_None ;		// Clear System Control Report
     ctrl_report2.key = U_None ;		// Clear Consumer Control Report
@@ -528,58 +543,60 @@ static uint8_t build_kbd_report ( uint8_t keys )
 
     for ( i = 0 ; i < KEY_COUNT ; ++i, keys >>= 1 )
     {						// Assemble keyboard report
-	if ( ! (keys & 1) )			// Key down
-	{
-	    usage = pgm_read_word( pu + i ) ;	// get its usage
+        if ( ! (keys & 1) )			// Key down
+        {
+            usage = pgm_read_word( pu + i ) ;	// get its usage
+            led_active = 1;
+            key_active = i;
 
-	    if ( (usage & REP_KB) )		// Keyboard usage
-	    {
-		if ( (usage & 0xF0) == 0xE0 )	// Modifier
-		    kbd_report.mod |= _BV( usage & 0x0F ) ;	// Magic.
-		else
-		    kbd_report.keys[ki++] = (usage & 0xFF) ;
-	    }
-	    else
-	    if ( (usage & REP_SC) )		// System Control usage
-		ctrl_report1.key = (usage & 0x0FFF) ;
-	    else
-	    if ( (usage & REP_CC) )		// Consumer Control usage
-		ctrl_report2.key = (usage & 0x0FFF) ;
-	    else				// Macro
-		ret |= (usage & 0x00F0) ;
-	}
+            if ( (usage & REP_KB) )		// Keyboard usage
+            {
+                if ( (usage & 0xF0) == 0xE0 )	// Modifier
+                    kbd_report.mod |= _BV( usage & 0x0F ) ;	// Magic.
+                else
+                    kbd_report.keys[ki++] = (usage & 0xFF) ;
+            }
+            else
+                if ( (usage & REP_SC) )		// System Control usage
+                    ctrl_report1.key = (usage & 0x0FFF) ;
+                else
+                    if ( (usage & REP_CC) )		// Consumer Control usage
+                        ctrl_report2.key = (usage & 0x0FFF) ;
+                    else				// Macro
+                        ret |= (usage & 0x00F0) ;
+        }
     }
 
     // Note: assuming NUM_KEYS <= ARRSZ( kbd_report.keys )
 
     for ( ; ki < ARRSZ( kbd_report.keys ) ; )
-	kbd_report.keys[ki++] = U_None ;
+        kbd_report.keys[ki++] = U_None ;
 
     // Check if a report changed and copy reports
 
     if ( last_kbd_rep.mod != kbd_report.mod )
     {
-	last_kbd_rep.mod = kbd_report.mod ;
-	ret |= REP0_CHG ;
+        last_kbd_rep.mod = kbd_report.mod ;
+        ret |= REP0_CHG ;
     }
 
     for ( ki = ARRSZ( kbd_report.keys ) ; ki-- ; )
-	if ( last_kbd_rep.keys[ki] != kbd_report.keys[ki] )
-	{
-	    last_kbd_rep.keys[ki] = kbd_report.keys[ki] ;
-	    ret |= REP0_CHG ;
-	}
+        if ( last_kbd_rep.keys[ki] != kbd_report.keys[ki] )
+        {
+            last_kbd_rep.keys[ki] = kbd_report.keys[ki] ;
+            ret |= REP0_CHG ;
+        }
 
     if ( last_ctrl_rep1 != ctrl_report1.key )
     {
-	last_ctrl_rep1 = ctrl_report1.key ;
-	ret |= REP1_CHG ;
+        last_ctrl_rep1 = ctrl_report1.key ;
+        ret |= REP1_CHG ;
     }
 
     if ( last_ctrl_rep2 != ctrl_report2.key )
     {
-	last_ctrl_rep2 = ctrl_report2.key ;
-	ret |= REP2_CHG ;
+        last_ctrl_rep2 = ctrl_report2.key ;
+        ret |= REP2_CHG ;
     }
 
     return ( ret ) ;
@@ -596,93 +613,93 @@ static uint8_t build_kbd_report ( uint8_t keys )
 static uint8_t play_macro ( uint8_t idx )
 {
     static const uint8_t
-	macro_1[] PROGMEM =		// http://www.techkeys.us
-	{
-	    U_LftCtrl, U_L, U_None,
-	    U_H, U_T, U_None, U_T, U_P, U_LftShift, U_SemiCol, U_Slash, U_None, U_Slash,
-	    U_W, U_None, U_W, U_None, U_W, U_Dot,
-	    U_T, U_E, U_C, U_H, U_K, U_E, U_Y, U_S, U_Dot, U_U, U_S,
-	    U_Enter, U_None
-	},
-	macro_2[] PROGMEM =		// mailto:info@techkeys.us
-	{
-	    U_LftCtrl, U_L, U_None,
-	    U_M, U_A, U_I, U_L, U_T, U_O, U_LftShift, U_SemiCol,
-	    U_I, U_N, U_F, U_O, U_LftShift, U_2,
-	    U_T, U_E, U_C, U_H, U_K, U_E, U_Y, U_S, U_Dot, U_U, U_S,
-	    U_Enter, U_None
-	},
-	macro_3[] PROGMEM =		// http://www.facebook.com/techkeysus
-	{
-	    U_LftCtrl, U_L, U_None,
-	    U_H, U_T, U_None, U_T, U_P, U_LftShift, U_SemiCol, U_Slash, U_None, U_Slash,
-	    U_W, U_None, U_W, U_None, U_W, U_Dot,
-	    U_F, U_A, U_C, U_E, U_B, U_O, U_None, U_O, U_K, U_Dot, U_C, U_O, U_M,
-	    U_Slash, U_T, U_E, U_C, U_H, U_K, U_E, U_Y, U_S, U_U, U_S,
-	    U_Enter, U_None
-	} ;
+        macro_1[] PROGMEM =		// http://www.techkeys.us
+        {
+            U_LftCtrl, U_L, U_None,
+            U_H, U_T, U_None, U_T, U_P, U_LftShift, U_SemiCol, U_Slash, U_None, U_Slash,
+            U_W, U_None, U_W, U_None, U_W, U_Dot,
+            U_T, U_E, U_C, U_H, U_K, U_E, U_Y, U_S, U_Dot, U_U, U_S,
+            U_Enter, U_None
+        },
+        macro_2[] PROGMEM =		// mailto:info@techkeys.us
+        {
+            U_LftCtrl, U_L, U_None,
+            U_M, U_A, U_I, U_L, U_T, U_O, U_LftShift, U_SemiCol,
+            U_I, U_N, U_F, U_O, U_LftShift, U_2,
+            U_T, U_E, U_C, U_H, U_K, U_E, U_Y, U_S, U_Dot, U_U, U_S,
+            U_Enter, U_None
+        },
+        macro_3[] PROGMEM =		// http://www.facebook.com/techkeysus
+        {
+            U_LftCtrl, U_L, U_None,
+            U_H, U_T, U_None, U_T, U_P, U_LftShift, U_SemiCol, U_Slash, U_None, U_Slash,
+            U_W, U_None, U_W, U_None, U_W, U_Dot,
+            U_F, U_A, U_C, U_E, U_B, U_O, U_None, U_O, U_K, U_Dot, U_C, U_O, U_M,
+            U_Slash, U_T, U_E, U_C, U_H, U_K, U_E, U_Y, U_S, U_U, U_S,
+            U_Enter, U_None
+        } ;
 
     static const struct
-	{
-	    uint8_t       sz ;		// Macro size, limited to 255 bytes for now
-	    const uint8_t *macro ;	// -> macro
-	}
-	macros[] PROGMEM =
-	{
-	    { sizeof( macro_1 ), macro_1 },
-	    { sizeof( macro_2 ), macro_2 },
-	    { sizeof( macro_3 ), macro_3 }
-	} ;
+    {
+        uint8_t       sz ;		// Macro size, limited to 255 bytes for now
+        const uint8_t *macro ;	// -> macro
+    }
+    macros[] PROGMEM =
+    {
+        { sizeof( macro_1 ), macro_1 },
+        { sizeof( macro_2 ), macro_2 },
+        { sizeof( macro_3 ), macro_3 }
+    } ;
 
     static uint8_t
-	timer,				// Delay timer
-	sz,				// Usages left to send
-	*pm ;				// -> next usage to send
+        timer,				// Delay timer
+        sz,				// Usages left to send
+        *pm ;				// -> next usage to send
 
     uint8_t
-	usage ;
+        usage ;
 
     if ( idx )				// Initialize macro playback
     {
-//	if ( idx > ARRSZ( macros ) )	// Should never happen
-//	    return ( FALSE ) ;
+        //	if ( idx > ARRSZ( macros ) )	// Should never happen
+        //	    return ( FALSE ) ;
 
-	sz = pgm_read_byte( &macros[idx - 1].sz ) ;
-	pm = VP( pgm_read_word( &macros[idx - 1].macro ) ) ;
+        sz = pgm_read_byte( &macros[idx - 1].sz ) ;
+        pm = VP( pgm_read_word( &macros[idx - 1].macro ) ) ;
 
-	timer = 0 ;
+        timer = 0 ;
 
-	kbd_report.mod = 0 ;
+        kbd_report.mod = 0 ;
 
-	for ( usage = 0 ; usage < ARRSZ( kbd_report.keys ) ; ++usage )
-	    kbd_report.keys[usage] = U_None ;
+        for ( usage = 0 ; usage < ARRSZ( kbd_report.keys ) ; ++usage )
+            kbd_report.keys[usage] = U_None ;
 
-	return ( M_ACTIVE | REP0_CHG ) ;// Signal active macro
+        return ( M_ACTIVE | REP0_CHG ) ;// Signal active macro
     }
 
     if ( ! timer-- )			// Time to send the next usage
     {
-	timer = M_DELAY ;		// reset timer
+        timer = M_DELAY ;		// reset timer
 
-	kbd_report.mod = 0 ;
+        kbd_report.mod = 0 ;
 
-	do
-	{
-	    usage = pgm_read_byte( pm ) ;
-	    ++pm ;
-	    --sz ;
+        do
+        {
+            usage = pgm_read_byte( pm ) ;
+            ++pm ;
+            --sz ;
 
-	    if ( (usage & 0xF0) == 0xE0 )	// Modifier
-		kbd_report.mod |= _BV( usage & 0x0F ) ;
-	}
-	while ( (usage & 0xF0) == 0xE0 ) ;
+            if ( (usage & 0xF0) == 0xE0 )	// Modifier
+                kbd_report.mod |= _BV( usage & 0x0F ) ;
+        }
+        while ( (usage & 0xF0) == 0xE0 ) ;
 
-	kbd_report.keys[0] = usage ;
+        kbd_report.keys[0] = usage ;
 
-	if ( ! sz )
-	    return ( REP0_CHG ) ;	// Playback done
+        if ( ! sz )
+            return ( REP0_CHG ) ;	// Playback done
 
-	return ( M_ACTIVE | REP0_CHG ) ;// New report and macro still active
+        return ( M_ACTIVE | REP0_CHG ) ;// New report and macro still active
     }
 
     return ( M_ACTIVE ) ;		// Macro still active, no report
@@ -695,98 +712,98 @@ static uint8_t play_macro ( uint8_t idx )
 uint8_t read_matrix ( uint8_t reset )
 {
     static uint8_t
-	macro,				// Flag to signal macro plaayback in progress
-	keys ;				// 0 == all keys on ! Call reset before 1st use.
+        macro,				// Flag to signal macro plaayback in progress
+        keys ;				// 0 == all keys on ! Call reset before 1st use.
 
     static int8_t
-	db_c[KEY_COUNT] ;		// Debounce counters
+        db_c[KEY_COUNT] ;		// Debounce counters
 
     uint8_t
-	i,
-	ret = FALSE,
-	key,
-	key_msk ;
+        i,
+        ret = FALSE,
+        key,
+        key_msk ;
 
     int8_t
-	*db = db_c ;
+        *db = db_c ;
 
     if ( reset )
     {
-	for ( i = KEY_COUNT ; i-- ; )		// Clear debounce counters
-	    *db++ = 0 ;
+        for ( i = KEY_COUNT ; i-- ; )		// Clear debounce counters
+            *db++ = 0 ;
 
-	keys = mKEYS ;				// All keys off
+        keys = mKEYS ;				// All keys off
 
-	return ( build_kbd_report( keys ) ) ;	// Clear reports
+        return ( build_kbd_report( keys ) ) ;	// Clear reports
     }
 
     if ( macro )				// Playing macro
     {
-	ret = play_macro( 0 ) ;
+        ret = play_macro( 0 ) ;
 
-	macro = ret & M_ACTIVE ;
-	ret  &= 0x0F ;
+        macro = ret & M_ACTIVE ;
+        ret  &= 0x0F ;
 
-	return ( ret ) ;
+        return ( ret ) ;
     }
 
     for ( key_msk = 1, i = KEY_COUNT ; i-- ; ++db, key_msk <<= 1 )
     {
-	key = KEY_IN_P & mKEYS_P ;		// Active inputs: 0b11100000
+        key = KEY_IN_P & mKEYS_P ;		// Active inputs: 0b11100000
 
-	__asm__ __volatile__
-	(
-	    "swap   %0" "\n\t"
-	    "lsr    %0" "\n\t"
-	    : "+r" (key) : "0" (key)
-	) ;					// now 0b00000111
+        __asm__ __volatile__
+            (
+             "swap   %0" "\n\t"
+             "lsr    %0" "\n\t"
+             : "+r" (key) : "0" (key)
+            ) ;					// now 0b00000111
 
-	key &= key_msk ;
+        key &= key_msk ;
 
-	if ( ! *db )				// Not debouncing ATM
-	{
-	    if ( key )				// Key off
-	    {
-		if ( ! (keys & key_msk) )	// Key was on, start debouncing
-		    *db = -DEBOUNCE_MS ;
-	    }
-	    else				// Key on
-	    {
-		if (   (keys & key_msk) )	// Key was off, start debouncing
-		    *db =  DEBOUNCE_MS ;
-	    }
-	}
-	else
-	{
-	    if ( key )
-		++*db ;				// Debouncing for off
-	    else
-		--*db ;				// Debouncing for on
+        if ( ! *db )				// Not debouncing ATM
+        {
+            if ( key )				// Key off
+            {
+                if ( ! (keys & key_msk) )	// Key was on, start debouncing
+                    *db = -DEBOUNCE_MS ;
+            }
+            else				// Key on
+            {
+                if (   (keys & key_msk) )	// Key was off, start debouncing
+                    *db =  DEBOUNCE_MS ;
+            }
+        }
+        else
+        {
+            if ( key )
+                ++*db ;				// Debouncing for off
+            else
+                --*db ;				// Debouncing for on
 
-	    if ( ! *db )			// Debouncing done, key changed
-	    {
-		if ( key )
-		    keys |=  key_msk ;		// Key now off
-		else
-		    keys &= ~key_msk ;		// Key now on
+            if ( ! *db )			// Debouncing done, key changed
+            {
+                if ( key )
+                    keys |=  key_msk ;		// Key now off
+                else
+                    keys &= ~key_msk ;		// Key now on
 
-		ret = TRUE ;			// Signal change
-	    }
-	    else
-	    if ( (*db > 0 && *db >= 2 *  DEBOUNCE_MS) ||
-		 (*db < 0 && *db <= 2 * -DEBOUNCE_MS) )
-		*db = 0 ;			// False alarm
-	}
+                ret = TRUE ;			// Signal change
+            }
+            else
+                if ( (*db > 0 && *db >= 2 *  DEBOUNCE_MS) ||
+                     (*db < 0 && *db <= 2 * -DEBOUNCE_MS) )
+                    *db = 0 ;			// False alarm
+        }
     }
 
     if ( ret )				// Key(s) changed
-	if ( (ret = build_kbd_report( keys )) & 0xF0 )
-	{				// Initialize macro playback
-	    ret = play_macro( (ret & 0xF0) >> 4 ) ;
+        if ( (ret = build_kbd_report( keys )) & 0xF0 )
+        {				// Initialize macro playback
+            ret = play_macro( (ret & 0xF0) >> 4 ) ;
 
-	    macro = ret & M_ACTIVE ;
-	    ret  &= 0x0F ;
-	}
+            macro = ret & M_ACTIVE ;
+            ret  &= 0x0F ;
+        }
 
     return ( ret ) ;
 }
@@ -801,11 +818,11 @@ void hw_init ( void )
 
     ACSR  = _BV(ACD) ;				// analog comp
     PRR0  =					// T0/1, SPI
-	    _BV(PRTIM0) |
-//	    _BV(PRTIM1) |			// We need T1
-	    _BV(PRSPI) ;
+        _BV(PRTIM0) |
+        //	    _BV(PRTIM1) |			// We need T1
+        _BV(PRSPI) ;
     PRR1  =					// USART1
-	    _BV(PRUSART1) ;
+        _BV(PRUSART1) ;
 
     clock_prescale_set( clock_div_1 ) ;		// Set clock divider to 1, full speed
 
