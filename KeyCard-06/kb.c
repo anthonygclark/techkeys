@@ -263,6 +263,17 @@ static void led_demo ( uint8_t reset )
             1,1,1,1,1,1,1,1,1,1, // ^ 
         } ;
 
+    // I don't know how storing the result of _BV() works
+    // so this is a small mapping for keys-to-leds (where keys
+    // is bKEY_n ... a constant)
+    static const uint8_t
+        mapping[] PROGMEM = 
+        {
+            mLED_RGT,
+            mLED_MID, 
+            mLED_LFT, 
+        };
+    
     static uint8_t
         timer,
         idx;
@@ -277,22 +288,17 @@ static void led_demo ( uint8_t reset )
         return ;
     }
 
+
     if ( ! timer-- )
     {
         timer = DEMO_TIMER ;
 
-        if (key_active == bKEY_LFT)
-            set_leds( mLED_LFT, pgm_read_byte( gradual + idx ));
-        if (key_active == bKEY_MID)
-            set_leds( mLED_MID, pgm_read_byte( gradual + idx ));
-        if (key_active == bKEY_RGT)
-            set_leds( mLED_RGT, pgm_read_byte( gradual + idx ));
+        set_leds(pgm_read_byte(mapping + key_active),
+                 pgm_read_byte(gradual + idx));
 
         if ( ++idx >= ARRSZ( gradual ) ) {
             idx = 0 ;
-            set_leds( mLED_LFT, 0);
-            set_leds( mLED_MID, 0);
-            set_leds( mLED_RGT, 0);
+            set_leds(pgm_read_byte(mapping + key_active), 0);
             led_active = 0;
         }
     }
