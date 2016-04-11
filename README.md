@@ -1,7 +1,7 @@
 techkeys
 ========
 
-![image](http://cdn.shopify.com/s/files/1/0218/4886/products/Card_Front_large.png?v=1389032701)
+![image](image.png)
 
 Various things for the `atmega16u2` based techkeys business card
 
